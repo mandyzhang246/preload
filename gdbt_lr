@@ -1,0 +1,26 @@
+import os
+import pandas as pd
+
+os.getcwd()
+
+
+#读取数据
+inputfile = './dpid_scu.txt'
+data = pd.read_table(inputfile,encoding ='utf-8',header=0)
+
+#划分训练集和测试集
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test =  train_test_split(X,y,test_size=0.25,random_state=1234)
+
+
+#Scikit-learn 实现GDBT+LR
+from sklearn.preprocessing import OneHotEncoder
+#划分训练集和测试集
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test =  train_test_split(X,y,test_size=0.25,random_state=1234)
+#训练模型
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.ensemble import GradientBoostingClassifier
+
+gbml = GradientBoostingClassifier(n_estimators=50, random_state=1234, 
+                                  subsample=0.6, max_depth = 7, min_samples_split=900)
