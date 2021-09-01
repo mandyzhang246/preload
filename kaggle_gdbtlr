@@ -64,9 +64,27 @@ print('LR_tr_logloss:',tr_logloss)
 print('LR_val_logoss:',val_logloss)
 
 # 3.1.4 模型预测
-y_pred=lr.predict_proba(test)[:,1]
+y_pred=lr.predict_proba(x_val)[:,1]
 # 查看钱10个点击的概率
 print('LR_predict:',y_pred[:10]) 
+
+# 查看精确率，召回率，F1-score
+lr.coef_
+lr.intercept_
+# pred预测的连续值切分为0-1， 并且计算精确值，召回值，f1，支持数
+import numpy as np
+y_pred2=np.where(y_pred>0.5,1,0)
+print(classification_report(y_val,y_pred2,target_names=['不点击','点击']))
+
+# 输出ROC
+from sklearn.metrics import roc_curve
+fpr,tpr,thresholds = roc_curve(y_val,y_pred)
+print(fpr,tpr,thresholds)
+
+import matplotlib.pyplot as plt
+plt.plot(fpr,tpr)
+plt.show()
+
     
 # 3.2 GDBT
 
