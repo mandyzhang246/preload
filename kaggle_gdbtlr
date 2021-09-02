@@ -151,6 +151,119 @@ plt.show()
 
 
 # 3.3 LR+GDBT
+# 读取数据
+import pandas as pd
+df_train=pd.read_csv('./train.csv') 
+df_test=pd.read_csv('./test.csv') 
+
+# test增加默认-1的标签
+df_test['Label'] = -1
+
+# 拼接数据
+data = pd.concat([df_train,df_test])
+data.fillna(-1,inplace=True)
+# 去掉ID
+data.drop(['Id'],axis=1,inplace=True)
+
+continuous_fea = ['I'+str(i+1) for i in range(13)]
+category_fea = ['C'+str(i+1) for i in range(26)]
+
+# 3.3.1 特征处理
+# 离散特征one-hot编码 同上
+# 离散特征one-hot 编码     
+for col in category_fea:
+    onehot_feats = pd.get_dummies( data[col],prefix=col)
+    data.drop([col],axis=1,inplace=True)
+    data=pd.concat([data,onehot_feats],axis=1)
+    
+  # 把训练集和测试集分开
+    train = data[data['Label'] != -1]
+    target = train.pop('Label')
+    test = data[data['Label'] == -1]
+    test.drop(['Label'], axis=1, inplace=True)
+
+    
+# 拆分训练集和测试集
+from sklearn.model_selection import train_test_split
+x_train,x_val,y_train,y_val = train_test_split(train,target,test_size=0.2, random_state=2020)  
+
+
+# 模型训练
+import lightgbm as lgb
+gbm = lgb.LGBMClassifier(objective='binary',
+                            subsample=0.8,
+                            min_child_weight=0.5,
+                            colsample_bytree=0.7,
+                            num_leaves=100,
+                            max_depth=12,
+                            learning_rate=0.01,
+                            n_estimators=1000,
+                             )
+# 训练模型
+gbm.fit(x_train, y_train,
+            eval_set=[(x_train, y_train), (x_val, y_val)],
+            eval_names=['train', 'val'],
+            eval_metric='binary_logloss',
+            early_stopping_rounds=100)
+
+model = gbm.booster_ 
+# train 和 test 进行预测，并且输出
+gbdt_feats_train = model.predict(train, pred_leaf=True)
+gbdt_feats_test = model.predict(test, pred_leaf=True)
+
+# GBDT预测结果进行字段命名-特征输出
+gbdtt_feats_name1 = ['gbdt_leaf_' + str(i)+'_0' for i in range(gbdt_feats_train.shape[1])]
+
+df_train_gbdt_feats = pd.DataFrame(gbdt_feats_train,columns=gbdt_feats_name)
+df_test_gbdt_feats = pd.DataFrame(gbdt_feats_test,columns=gbdt_feats_name)
+
+# 拼接GDBT预测结果生成新的训练集
+train = pd.concat([train,df_train_gbdt_feats],axis=1)
+test = pd.concat([test,df_test_gbdt_feats],axis=1)
+
+# 查看有多少条数据
+train_len = train.shape[0] 
+# 增加GDBT训练之后的数节点为新的特征
+data = pd.concat([train,test])
+del train
+del test
+gc.collect()
+
+
+# 连续特征归一化
+from sklearn.preprocessing import MinMaxScaler
+scaler = MinMaxScaler()
+for col in continuous_fea:  
+    data[col]=scaler.fit_transform(data[col].values.reshape(-1,1))
+    
+# 离散特征one-hot 编码     
+for col in gbdt_feats_name:
+    onehot_feats = pd.get_dummies( data[col],prefix=col)
+    data.drop([col],axis=1,inplace=True)
+    data=pd.concat([data,onehot_feats],axis=1)   
+
+# 切分训练集和测试集
+train = data[:train_len]
+test = data[train_len:]
+
+del data
+gc.collect()
+x_train, x_val, y_train, y_val = train_test_split(train, target, test_size = 0.3, random_state = 2018)
+
+# LR 模型训练
+lr = LogisticRegression()
+lr.fit(x_train,y_train)
+
+from sklearn.metrics import log_loss
+tr_logloss=log_loss(y_train, lr.predict_proba(x_train)[:,1])
+val_logloss=log_loss(y_val, lr.predict_proba(x_val)[:,1])
+
+print('GBDT+LR_tr_logloss:',tr_logloss)
+print('GBDT+LR_val_logoss:',val_logloss)
+
+y_pred = lr.predict_proba(test)[:,1]
+print(y_pred[:10])
+
 
 
 # 4 模型评估
