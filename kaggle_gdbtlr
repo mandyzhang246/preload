@@ -88,6 +88,47 @@ plt.show()
     
 # 3.2 GDBT
 
+# 3.2.1 特征处理
+# 离散特征one-hot编码 同上
+# 离散特征one-hot 编码     
+for col in category_fea:
+    onehot_feats = pd.get_dummies( data[col],prefix=col)
+    data.drop([col],axis=1,inplace=True)
+    data=pd.concat([data,onehot_feats],axis=1)
+# 3.2.2 训练集和测试集分开 同上
+# 划分数据集 同上
+# 3.2.3 建立模型
+import lightgbm as lgb
+gbm = lgb.LGBMClassifier(boosting_type='gdbt',
+                   objective='binary',
+                   subsample=0.8, #数据采样
+                   min_child_weight=0.5,
+                   colsample_bytree=0.7, #特征采样
+                   num_leaves=100,
+                   max_depth=12,
+                   learning_rate=0.01,
+                   n_estimators=10000
+                  )
+gbm.fit(x_train,y_train,
+       eval_set=[(x_train,y_train),(x_val,y_val)],
+       eval_names=['train','val'],
+       eval_metric='binary_logloss',
+       early_stopping_rounds=100)
+
+# 查看损失函数
+from sklearn.metrics import log_loss
+tr_logloss=log_loss(y_train, gbm.predict_proba(x_train)[:,1])
+val_logloss=log_loss(y_val, gbm.predict_proba(x_val)[:,1])
+
+print('GDBT_tr_logloss:',tr_logloss)
+print('GDBT_val_logoss:',val_logloss)
+
+# 3.2.4 模型预测
+y_pred=gbm.predict_proba(x_val)[:,1]
+# 查看钱10个点击的概率
+print('GDBT_predict:',test[:10]) 
+
+
 # 3.3 LR+GDBT
 
 
