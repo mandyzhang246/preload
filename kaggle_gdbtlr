@@ -123,10 +123,25 @@ val_logloss=log_loss(y_val, gbm.predict_proba(x_val)[:,1])
 print('GDBT_tr_logloss:',tr_logloss)
 print('GDBT_val_logoss:',val_logloss)
 
+
 # 3.2.4 模型预测
 y_pred=gbm.predict_proba(x_val)[:,1]
 # 查看钱10个点击的概率
 print('GDBT_predict:',test[:10]) 
+
+# 查看准确率和召回率
+import numpy as np
+y_pred2=np.where(y_pred>0.5,1,0)
+print('GDBT 效果：\n'+classification_report(y_val,y_pred2,target_names=['不点击','点击']))
+
+# 查看ROC
+from sklearn.metrics import roc_curve
+fpr,tpr,thresholds = roc_curve(y_val,y_pred)
+print(fpr,tpr,thresholds)
+
+import matplotlib.pyplot as plt
+plt.plot(fpr,tpr)
+plt.show()
 
 
 # 3.3 LR+GDBT
