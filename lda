@@ -2,7 +2,7 @@
 pip install pandas
 pip install --user gensim
 
-
+https://blog.csdn.net/qq_40006058/article/details/85865695
 
 #引入包
 import os
